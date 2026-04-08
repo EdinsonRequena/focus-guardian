@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Pipenv
+# Pipfile.lock normalmente sí se commitea en apps
+# No lo ignores salvo que decidas explícitamente lo contrario
+
+# Environment variables
+.env
+
+# macOS
+.DS_Store
+
+# IDEs / editors
+.vscode/
+.idea/
+
+# Testing / coverage / cache
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Local temporary files
+tmp/
+temp/
+
+# Optional: ignore local audio assets if luego decides no versionarlos
+# assets/sounds/*.wav
+# assets/sounds/*.mp3
