@@ -19,17 +19,20 @@ class Settings:
     window_title: str
     frame_width: int
     frame_height: int
+    analysis_frame_width: int
     mirror_preview: bool
+    face_landmarker_model_path: str
     no_face_threshold_seconds: float
     looking_away_threshold_seconds: float
     looking_down_threshold_seconds: float
     recovery_threshold_seconds: float
     audio_cooldown_seconds: float
-    looking_away_yaw_threshold_degrees: float
+    looking_away_ratio_threshold: float
     looking_down_ratio_threshold: float
+    metric_smoothing: float
     min_detection_confidence: float
+    min_face_presence_confidence: float
     min_tracking_confidence: float
-    mediapipe_face_landmarker_path: str | None
     show_debug_metrics: bool
     show_landmarks: bool
     sound_paths: tuple[str, ...]
@@ -63,7 +66,11 @@ def load_settings() -> Settings:
         window_title=os.getenv("WINDOW_TITLE", "Focus Guardian"),
         frame_width=int(os.getenv("FRAME_WIDTH", "1280")),
         frame_height=int(os.getenv("FRAME_HEIGHT", "720")),
+        analysis_frame_width=int(os.getenv("ANALYSIS_FRAME_WIDTH", "640")),
         mirror_preview=_get_bool("MIRROR_PREVIEW", True),
+        face_landmarker_model_path=os.getenv(
+            "FACE_LANDMARKER_MODEL_PATH", "assets/models/face_landmarker.task"
+        ),
         no_face_threshold_seconds=float(
             os.getenv("NO_FACE_THRESHOLD_SECONDS", "0.8")
         ),
@@ -74,25 +81,25 @@ def load_settings() -> Settings:
             os.getenv("LOOKING_DOWN_THRESHOLD_SECONDS", "1.0")
         ),
         recovery_threshold_seconds=float(
-            os.getenv("RECOVERY_THRESHOLD_SECONDS", "0.6")
+            os.getenv("RECOVERY_THRESHOLD_SECONDS", "0.45")
         ),
         audio_cooldown_seconds=float(os.getenv("AUDIO_COOLDOWN_SECONDS", "3.0")),
-        looking_away_yaw_threshold_degrees=float(
-            os.getenv("LOOKING_AWAY_YAW_THRESHOLD_DEGREES", "18.0")
+        looking_away_ratio_threshold=float(
+            os.getenv("LOOKING_AWAY_RATIO_THRESHOLD", "0.12")
         ),
         looking_down_ratio_threshold=float(
-            os.getenv("LOOKING_DOWN_RATIO_THRESHOLD", "0.62")
+            os.getenv("LOOKING_DOWN_RATIO_THRESHOLD", "0.42")
         ),
+        metric_smoothing=float(os.getenv("METRIC_SMOOTHING", "0.45")),
         min_detection_confidence=float(
             os.getenv("MIN_DETECTION_CONFIDENCE", "0.5")
+        ),
+        min_face_presence_confidence=float(
+            os.getenv("MIN_FACE_PRESENCE_CONFIDENCE", "0.5")
         ),
         min_tracking_confidence=float(
             os.getenv("MIN_TRACKING_CONFIDENCE", "0.5")
         ),
-        mediapipe_face_landmarker_path=os.getenv(
-            "MEDIAPIPE_FACE_LANDMARKER_PATH"
-        )
-        or None,
         show_debug_metrics=_get_bool("SHOW_DEBUG_METRICS", False),
         show_landmarks=_get_bool("SHOW_LANDMARKS", False),
         sound_paths=sound_paths,

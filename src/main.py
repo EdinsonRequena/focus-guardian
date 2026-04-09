@@ -65,8 +65,9 @@ def main() -> None:
             if settings.mirror_preview:
                 frame = cv2.flip(frame, 1)
 
-            detection = detector.analyze(frame)
-            session = service.update(detection, time.monotonic())
+            now = time.monotonic()
+            detection = detector.analyze(frame, now)
+            session = service.update(detection, now)
             if session.should_play_audio:
                 audio_player.play_distraction_alert(session.audio_reason)
 

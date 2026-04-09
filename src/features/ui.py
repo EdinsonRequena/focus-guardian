@@ -38,7 +38,11 @@ class FocusUI:
             self._draw_face_box(output, detection.face_box, color)
 
         if self.settings.show_landmarks and detection.landmark_points:
-            self._draw_landmarks(output, detection.landmark_points, color)
+            self._draw_landmarks(
+                output,
+                detection.landmark_points,
+                detection.landmark_connections,
+            )
 
         if self.settings.show_debug_metrics:
             self._draw_debug_panel(output, session, detection)
@@ -117,8 +121,9 @@ class FocusUI:
             f"backend: {detection.debug_values.get('backend', 'unknown')}",
             f"face: {detection.debug_values.get('face_detected', 'no')}",
             f"candidate: {session.candidate_reason.value if session.candidate_reason else 'none'}",
-            f"yaw_deg: {detection.debug_values.get('yaw_deg', '0.0')}",
+            f"turn_ratio: {detection.debug_values.get('turn_ratio', '0.000')}",
             f"down_ratio: {detection.debug_values.get('down_ratio', '0.00')}",
+            f"analysis: {detection.debug_values.get('analysis', 'n/a')}",
         ]
         height = 32 + (len(lines) * 26)
         y1 = frame.shape[0] - height - 20
@@ -151,10 +156,26 @@ class FocusUI:
     def _draw_landmarks(
         frame: np.ndarray,
         landmark_points: list[tuple[int, int]],
-        color: tuple[int, int, int],
+        landmark_connections: list[tuple[int, int]],
     ) -> None:
+        line_color = (255, 215, 0)
+        point_color = (0, 255, 255)
+
+        for start, end in landmark_connections:
+            if start >= len(landmark_points) or end >= len(landmark_points):
+                continue
+
+            cv2.line(
+                frame,
+                landmark_points[start],
+                landmark_points[end],
+                line_color,
+                1,
+                cv2.LINE_AA,
+            )
+
         for x, y in landmark_points:
-            cv2.circle(frame, (x, y), 1, color, -1, cv2.LINE_AA)
+            cv2.circle(frame, (x, y), 1, point_color, -1, cv2.LINE_AA)
 
     @staticmethod
     def _draw_frame_border(

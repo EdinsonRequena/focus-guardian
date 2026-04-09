@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 opencv-python = "*"
-mediapipe = "*"
+mediapipe = "==0.10.33"
 numpy = "*"
 pygame = "*"
 python-dotenv = "*"
