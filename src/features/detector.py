@@ -24,6 +24,14 @@ LEFT_EYE_INDEX = 33
 RIGHT_EYE_INDEX = 263
 MOUTH_CENTER_INDEX = 13
 CHIN_INDEX = 152
+RIGHT_EYE_TOP_INDEXES = (159, 160)
+RIGHT_EYE_BOTTOM_INDEXES = (145, 144)
+LEFT_EYE_TOP_INDEXES = (386, 385)
+LEFT_EYE_BOTTOM_INDEXES = (374, 380)
+RIGHT_IRIS_INDEXES = (469, 470, 471, 472)
+LEFT_IRIS_INDEXES = (474, 475, 476, 477)
+RIGHT_EYE_CORNER_INDEXES = (33, 133)
+LEFT_EYE_CORNER_INDEXES = (362, 263)
 
 LANDMARK_CONNECTIONS = [
     *[
@@ -60,6 +68,8 @@ class FocusDetector:
         self.settings = settings
         self.backend = "face_landmarker_task"
         self._smoothed_turn_ratio = 0.0
+        self._smoothed_head_down_ratio = 0.0
+        self._smoothed_eyes_down_ratio = 0.0
         self._smoothed_down_ratio = 0.0
         self._last_timestamp_ms = 0
 
@@ -100,7 +110,8 @@ class FocusDetector:
             self.landmarker.close()
 
     def _create_face_landmarker(self) -> object | None:
-        model_path = (BASE_DIR / self.settings.face_landmarker_model_path).resolve()
+        model_path = (
+            BASE_DIR / self.settings.face_landmarker_model_path).resolve()
         if not model_path.exists():
             LOGGER.warning(
                 "Face Landmarker model not found at %s. Falling back to OpenCV.",
@@ -146,7 +157,7 @@ class FocusDetector:
         result = self.landmarker.detect_for_video(mp_image, timestamp_ms)
 
         if not result.face_landmarks:
-            self._smooth_metrics(0.0, 0.0)
+            self._smooth_metrics(0.0, 0.0, 0.0)
             return self._no_face_snapshot()
 
         face_landmarks = result.face_landmarks[0]
@@ -160,8 +171,18 @@ class FocusDetector:
         face_box = self._points_to_box(display_points)
 
         turn_ratio = self._compute_turn_ratio(face_landmarks)
-        down_ratio = self._compute_down_ratio(face_landmarks)
-        turn_ratio, down_ratio = self._smooth_metrics(turn_ratio, down_ratio)
+        head_down_ratio = self._compute_head_down_ratio(face_landmarks)
+        eyes_down_ratio = self._compute_eyes_down_ratio(face_landmarks)
+        (
+            turn_ratio,
+            head_down_ratio,
+            eyes_down_ratio,
+            down_ratio,
+        ) = self._smooth_metrics(
+            turn_ratio,
+            head_down_ratio,
+            eyes_down_ratio,
+        )
         raw_reason = self._reason_from_metrics(turn_ratio, down_ratio)
 
         return DetectionSnapshot(
@@ -175,6 +196,8 @@ class FocusDetector:
                 "face_detected": "yes",
                 "raw_reason": raw_reason.value if raw_reason else "focused",
                 "turn_ratio": f"{turn_ratio:.3f}",
+                "head_down_ratio": f"{head_down_ratio:.3f}",
+                "eyes_down_ratio": f"{eyes_down_ratio:.3f}",
                 "down_ratio": f"{down_ratio:.3f}",
                 "analysis": f"{analysis_width}x{analysis_height}",
             },
@@ -203,13 +226,14 @@ class FocusDetector:
         )
 
         if len(faces) == 0 and len(profiles) == 0:
-            self._smooth_metrics(0.0, 0.0)
+            self._smooth_metrics(0.0, 0.0, 0.0)
             return self._no_face_snapshot()
 
         if len(faces) > 0:
-            face_box = self._largest_box([tuple(map(int, face)) for face in faces])
+            face_box = self._largest_box(
+                [tuple(map(int, face)) for face in faces])
             display_box = self._scale_box(face_box, scale_x, scale_y)
-            self._smooth_metrics(0.0, 0.0)
+            self._smooth_metrics(0.0, 0.0, 0.0)
             return DetectionSnapshot(
                 has_face=True,
                 raw_reason=None,
@@ -219,14 +243,17 @@ class FocusDetector:
                     "face_detected": "yes",
                     "raw_reason": "focused",
                     "turn_ratio": "0.000",
+                    "head_down_ratio": "0.000",
+                    "eyes_down_ratio": "0.000",
                     "down_ratio": "0.000",
                     "analysis": f"{gray.shape[1]}x{gray.shape[0]}",
                 },
             )
 
-        profile_box = self._largest_box([tuple(map(int, face)) for face in profiles])
+        profile_box = self._largest_box(
+            [tuple(map(int, face)) for face in profiles])
         display_box = self._scale_box(profile_box, scale_x, scale_y)
-        self._smooth_metrics(0.0, 0.0)
+        self._smooth_metrics(0.0, 0.0, 0.0)
         return DetectionSnapshot(
             has_face=True,
             raw_reason=DistractionReason.LOOKING_AWAY,
@@ -236,6 +263,8 @@ class FocusDetector:
                 "face_detected": "yes",
                 "raw_reason": DistractionReason.LOOKING_AWAY.value,
                 "turn_ratio": "profile",
+                "head_down_ratio": "0.000",
+                "eyes_down_ratio": "0.000",
                 "down_ratio": "0.000",
                 "analysis": f"{gray.shape[1]}x{gray.shape[0]}",
             },
@@ -280,19 +309,39 @@ class FocusDetector:
     ) -> DistractionReason | None:
         if turn_ratio >= self.settings.looking_away_ratio_threshold:
             return DistractionReason.LOOKING_AWAY
-        if down_ratio >= self.settings.looking_down_ratio_threshold:
+        if (
+            down_ratio >= self.settings.looking_down_ratio_threshold
+            or self._smoothed_eyes_down_ratio >= self.settings.eyes_down_ratio_threshold
+        ):
             return DistractionReason.LOOKING_DOWN
         return None
 
-    def _smooth_metrics(self, turn_ratio: float, down_ratio: float) -> tuple[float, float]:
+    def _smooth_metrics(
+        self,
+        turn_ratio: float,
+        head_down_ratio: float,
+        eyes_down_ratio: float,
+    ) -> tuple[float, float, float, float]:
         alpha = self.settings.metric_smoothing
         self._smoothed_turn_ratio = ((1 - alpha) * self._smoothed_turn_ratio) + (
             alpha * turn_ratio
         )
-        self._smoothed_down_ratio = ((1 - alpha) * self._smoothed_down_ratio) + (
-            alpha * down_ratio
+        self._smoothed_head_down_ratio = (
+            (1 - alpha) * self._smoothed_head_down_ratio
+        ) + (alpha * head_down_ratio)
+        self._smoothed_eyes_down_ratio = (
+            (1 - alpha) * self._smoothed_eyes_down_ratio
+        ) + (alpha * eyes_down_ratio)
+        self._smoothed_down_ratio = max(
+            self._smoothed_head_down_ratio,
+            self._smoothed_eyes_down_ratio,
         )
-        return self._smoothed_turn_ratio, self._smoothed_down_ratio
+        return (
+            self._smoothed_turn_ratio,
+            self._smoothed_head_down_ratio,
+            self._smoothed_eyes_down_ratio,
+            self._smoothed_down_ratio,
+        )
 
     def _no_face_snapshot(self) -> DetectionSnapshot:
         return DetectionSnapshot(
@@ -303,6 +352,8 @@ class FocusDetector:
                 "face_detected": "no",
                 "raw_reason": DistractionReason.NO_FACE.value,
                 "turn_ratio": "0.000",
+                "head_down_ratio": "0.000",
+                "eyes_down_ratio": "0.000",
                 "down_ratio": "0.000",
                 "analysis": "n/a",
             },
@@ -369,6 +420,7 @@ class FocusDetector:
 
         face_center_x = (left_cheek.x + right_cheek.x) / 2
         face_width = max(right_cheek.x - left_cheek.x, 1e-6)
+
         nose_offset = abs(nose.x - face_center_x) / face_width
 
         left_span = max(nose.x - left_cheek.x, 1e-6)
@@ -378,10 +430,10 @@ class FocusDetector:
         eye_center_x = (left_eye.x + right_eye.x) / 2
         eye_offset = abs(nose.x - eye_center_x) / face_width
 
-        return max(nose_offset * 1.2, cheek_asymmetry, eye_offset)
+        return (nose_offset * 0.55) + (cheek_asymmetry * 0.30) + (eye_offset * 0.15)
 
     @staticmethod
-    def _compute_down_ratio(landmarks: list[object]) -> float:
+    def _compute_head_down_ratio(landmarks: list[object]) -> float:
         left_eye = landmarks[LEFT_EYE_INDEX]
         right_eye = landmarks[RIGHT_EYE_INDEX]
         nose = landmarks[NOSE_TIP_INDEX]
@@ -393,3 +445,53 @@ class FocusDetector:
         nose_ratio = (nose.y - eye_center_y) / lower_face_span
         mouth_ratio = (mouth.y - eye_center_y) / lower_face_span
         return max(0.0, ((nose_ratio * 0.6) + (mouth_ratio * 0.4)) - 0.22)
+
+    def _compute_eyes_down_ratio(self, landmarks: list[object]) -> float:
+        right_eye_ratio = self._compute_single_eye_down_ratio(
+            landmarks=landmarks,
+            iris_indexes=RIGHT_IRIS_INDEXES,
+            top_indexes=RIGHT_EYE_TOP_INDEXES,
+            bottom_indexes=RIGHT_EYE_BOTTOM_INDEXES,
+            corner_indexes=RIGHT_EYE_CORNER_INDEXES,
+        )
+        left_eye_ratio = self._compute_single_eye_down_ratio(
+            landmarks=landmarks,
+            iris_indexes=LEFT_IRIS_INDEXES,
+            top_indexes=LEFT_EYE_TOP_INDEXES,
+            bottom_indexes=LEFT_EYE_BOTTOM_INDEXES,
+            corner_indexes=LEFT_EYE_CORNER_INDEXES,
+        )
+        return (right_eye_ratio + left_eye_ratio) / 2
+
+    @staticmethod
+    def _compute_single_eye_down_ratio(
+        landmarks: list[object],
+        iris_indexes: tuple[int, ...],
+        top_indexes: tuple[int, ...],
+        bottom_indexes: tuple[int, ...],
+        corner_indexes: tuple[int, int],
+    ) -> float:
+        iris_center_y = sum(landmarks[index].y for index in iris_indexes) / len(
+            iris_indexes
+        )
+        eye_top_y = sum(
+            landmarks[index].y for index in top_indexes) / len(top_indexes)
+        eye_bottom_y = sum(landmarks[index].y for index in bottom_indexes) / len(
+            bottom_indexes
+        )
+
+        left_corner_x = landmarks[corner_indexes[0]].x
+        right_corner_x = landmarks[corner_indexes[1]].x
+
+        eye_height = max(eye_bottom_y - eye_top_y, 1e-6)
+        eye_width = max(abs(right_corner_x - left_corner_x), 1e-6)
+        eye_openness_ratio = eye_height / eye_width
+
+        iris_position_ratio = (iris_center_y - eye_top_y) / eye_height
+
+        # Baseline dinámico:
+        # si el ojo se abre mucho, elevamos el baseline para no confundir
+        # "abrir los ojos" con "mirar hacia abajo".
+        baseline = 0.50 + max(0.0, eye_openness_ratio - 0.28) * 0.90
+
+        return max(0.0, min((iris_position_ratio - baseline) / 0.18, 1.5))

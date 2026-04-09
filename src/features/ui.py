@@ -122,6 +122,8 @@ class FocusUI:
             f"face: {detection.debug_values.get('face_detected', 'no')}",
             f"candidate: {session.candidate_reason.value if session.candidate_reason else 'none'}",
             f"turn_ratio: {detection.debug_values.get('turn_ratio', '0.000')}",
+            f"head_down: {detection.debug_values.get('head_down_ratio', '0.000')}",
+            f"eyes_down: {detection.debug_values.get('eyes_down_ratio', '0.000')}",
             f"down_ratio: {detection.debug_values.get('down_ratio', '0.00')}",
             f"analysis: {detection.debug_values.get('analysis', 'n/a')}",
         ]

@@ -29,6 +29,7 @@ class Settings:
     audio_cooldown_seconds: float
     looking_away_ratio_threshold: float
     looking_down_ratio_threshold: float
+    eyes_down_ratio_threshold: float
     metric_smoothing: float
     min_detection_confidence: float
     min_face_presence_confidence: float
@@ -89,6 +90,9 @@ def load_settings() -> Settings:
         ),
         looking_down_ratio_threshold=float(
             os.getenv("LOOKING_DOWN_RATIO_THRESHOLD", "0.42")
+        ),
+        eyes_down_ratio_threshold=float(
+            os.getenv("EYES_DOWN_RATIO_THRESHOLD", "0.68")
         ),
         metric_smoothing=float(os.getenv("METRIC_SMOOTHING", "0.45")),
         min_detection_confidence=float(
