@@ -72,6 +72,8 @@ class FocusDetector:
         self._smoothed_eyes_down_ratio = 0.0
         self._smoothed_down_ratio = 0.0
         self._last_timestamp_ms = 0
+        self._eyes_down_baseline = 0.0
+        self._baseline_ready = False
 
         self.face_cascade = cv2.CascadeClassifier(
             cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -172,7 +174,11 @@ class FocusDetector:
 
         turn_ratio = self._compute_turn_ratio(face_landmarks)
         head_down_ratio = self._compute_head_down_ratio(face_landmarks)
-        eyes_down_ratio = self._compute_eyes_down_ratio(face_landmarks)
+        eyes_down_ratio = self._compute_eyes_down_ratio(
+            landmarks=face_landmarks,
+            turn_ratio=turn_ratio,
+            head_down_ratio=head_down_ratio,
+        )
         (
             turn_ratio,
             head_down_ratio,
@@ -200,6 +206,8 @@ class FocusDetector:
                 "eyes_down_ratio": f"{eyes_down_ratio:.3f}",
                 "down_ratio": f"{down_ratio:.3f}",
                 "analysis": f"{analysis_width}x{analysis_height}",
+                "baseline_ready": str(self._baseline_ready),
+                "eyes_baseline": f"{self._eyes_down_baseline:.3f}",
             },
         )
 
@@ -446,31 +454,57 @@ class FocusDetector:
         mouth_ratio = (mouth.y - eye_center_y) / lower_face_span
         return max(0.0, ((nose_ratio * 0.6) + (mouth_ratio * 0.4)) - 0.22)
 
-    def _compute_eyes_down_ratio(self, landmarks: list[object]) -> float:
-        right_eye_ratio = self._compute_single_eye_down_ratio(
+    def _compute_eyes_down_ratio(
+        self,
+        landmarks: list[object],
+        turn_ratio: float,
+        head_down_ratio: float,
+    ) -> float:
+        right_eye_measure = self._compute_single_eye_measure(
             landmarks=landmarks,
             iris_indexes=RIGHT_IRIS_INDEXES,
             top_indexes=RIGHT_EYE_TOP_INDEXES,
             bottom_indexes=RIGHT_EYE_BOTTOM_INDEXES,
             corner_indexes=RIGHT_EYE_CORNER_INDEXES,
         )
-        left_eye_ratio = self._compute_single_eye_down_ratio(
+        left_eye_measure = self._compute_single_eye_measure(
             landmarks=landmarks,
             iris_indexes=LEFT_IRIS_INDEXES,
             top_indexes=LEFT_EYE_TOP_INDEXES,
             bottom_indexes=LEFT_EYE_BOTTOM_INDEXES,
             corner_indexes=LEFT_EYE_CORNER_INDEXES,
         )
-        return (right_eye_ratio + left_eye_ratio) / 2
+
+        valid_measures = [
+            value for value in (right_eye_measure, left_eye_measure) if value is not None
+        ]
+        if not valid_measures:
+            return 0.0
+
+        current_measure = sum(valid_measures) / len(valid_measures)
+
+        if turn_ratio < 0.12 and head_down_ratio < 0.24:
+            if not self._baseline_ready:
+                self._eyes_down_baseline = current_measure
+                self._baseline_ready = True
+            else:
+                self._eyes_down_baseline = (self._eyes_down_baseline * 0.92) + (
+                    current_measure * 0.08
+                )
+
+        baseline = self._eyes_down_baseline if self._baseline_ready else current_measure
+        delta = current_measure - baseline
+
+        return max(0.0, min((delta - 0.005) / 0.05, 1.5))
 
     @staticmethod
-    def _compute_single_eye_down_ratio(
+    def _compute_single_eye_measure(
         landmarks: list[object],
         iris_indexes: tuple[int, ...],
         top_indexes: tuple[int, ...],
         bottom_indexes: tuple[int, ...],
         corner_indexes: tuple[int, int],
-    ) -> float:
+    ) -> float | None:
         iris_center_y = sum(landmarks[index].y for index in iris_indexes) / len(
             iris_indexes
         )
@@ -487,11 +521,8 @@ class FocusDetector:
         eye_width = max(abs(right_corner_x - left_corner_x), 1e-6)
         eye_openness_ratio = eye_height / eye_width
 
+        if eye_openness_ratio < 0.06 or eye_openness_ratio > 0.40:
+            return None
+
         iris_position_ratio = (iris_center_y - eye_top_y) / eye_height
-
-        # Baseline dinámico:
-        # si el ojo se abre mucho, elevamos el baseline para no confundir
-        # "abrir los ojos" con "mirar hacia abajo".
-        baseline = 0.50 + max(0.0, eye_openness_ratio - 0.28) * 0.90
-
-        return max(0.0, min((iris_position_ratio - baseline) / 0.18, 1.5))
+        return iris_position_ratio
