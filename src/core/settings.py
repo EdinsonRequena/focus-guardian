@@ -49,7 +49,7 @@ def _get_bool(name: str, default: bool) -> bool:
 
 def load_settings() -> Settings:
     """Load local configuration from environment variables."""
-    load_dotenv(ENV_FILE)
+    load_dotenv(ENV_FILE, override=True)
 
     sound_paths = tuple(
         path
@@ -84,7 +84,8 @@ def load_settings() -> Settings:
         recovery_threshold_seconds=float(
             os.getenv("RECOVERY_THRESHOLD_SECONDS", "0.45")
         ),
-        audio_cooldown_seconds=float(os.getenv("AUDIO_COOLDOWN_SECONDS", "3.0")),
+        audio_cooldown_seconds=float(
+            os.getenv("AUDIO_COOLDOWN_SECONDS", "3.0")),
         looking_away_ratio_threshold=float(
             os.getenv("LOOKING_AWAY_RATIO_THRESHOLD", "0.12")
         ),
