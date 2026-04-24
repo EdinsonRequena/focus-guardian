@@ -1,6 +1,8 @@
 # Focus Guardian
 Focus Guardian es una aplicación de escritorio que utiliza la webcam para monitorear la atención del usuario. Detecta si el usuario está mirando hacia otro lado, hacia abajo o si no hay una cara presente, y proporciona retroalimentación visual y auditiva en tiempo real.
 
+Modo demo recomendado: `SHOW_DEBUG_METRICS=false` para una captura limpia. Modo calibración: activa debug para ver métricas de ojos, baseline y ratios.
+
 ## Stack
 
 - Python 3.12
@@ -37,6 +39,13 @@ pipenv run python src/main.py
 
 Presiona `q` para cerrar la app.
 
+## Hotkeys
+
+- `q`: salir
+- `d`: toggle debug metrics
+- `l`: toggle landmarks
+- `r`: reset del contador de distracciones
+
 ## Variables utiles
 
 Parte desde `.env.example` y ajusta solo lo necesario:
@@ -57,5 +66,8 @@ Parte desde `.env.example` y ajusta solo lo necesario:
 - `MIN_FACE_PRESENCE_CONFIDENCE`: confianza minima de presencia facial
 - `MIN_TRACKING_CONFIDENCE`: confianza minima de tracking
 - `METRIC_SMOOTHING`: suavizado simple de metricas por frame
+- `AUDIO_VOLUME`: volumen global entre `0.0` y `1.0`
 - `SHOW_LANDMARKS`: dibuja el mesh facial visible sobre la cara
 - `SHOW_DEBUG_METRICS`: muestra metricas utiles para calibracion
+
+Los audios se leen desde `assets/sounds/`. Puedes dejar solo `SOUND_1_PATH` configurado si quieres una demo simple con un único MP3.
