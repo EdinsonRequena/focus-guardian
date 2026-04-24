@@ -1,7 +1,8 @@
 # Focus Guardian
-Focus Guardian es una aplicación de escritorio que utiliza la webcam para monitorear la atención del usuario. Detecta si el usuario está mirando hacia otro lado, hacia abajo o si no hay una cara presente, y proporciona retroalimentación visual y auditiva en tiempo real.
 
-Modo demo recomendado: `SHOW_DEBUG_METRICS=false` para una captura limpia. Modo calibración: activa debug para ver métricas de ojos, baseline y ratios.
+Focus Guardian is a local desktop application that uses your webcam to monitor user attention. It detects whether the user is looking away, looking down, or if no face is present, and provides real-time visual and audio feedback.
+
+Recommended demo mode: `SHOW_DEBUG_METRICS=false` for a clean recording. Calibration mode: enable debug metrics to inspect eye movement, baseline values, and detection ratios.
 
 ## Stack
 
@@ -15,59 +16,59 @@ Modo demo recomendado: `SHOW_DEBUG_METRICS=false` para una captura limpia. Modo 
 - pylint
 - autopep8
 
-## Requisito del modelo
+## Model Requirement
 
-El detector carga el modelo desde:
+The detector loads the model from:
 
 ```text
 assets/models/face_landmarker.task
 ```
 
-Tambien puedes cambiar la ruta con `FACE_LANDMARKER_MODEL_PATH`.
+You can also change the path with `FACE_LANDMARKER_MODEL_PATH`.
 
-## Instalacion
+## Installation
 
 ```bash
 pipenv install
 ```
 
-## Ejecucion
+## Running the App
 
 ```bash
 pipenv run python src/main.py
 ```
 
-Presiona `q` para cerrar la app.
+Press `q` to close the app.
 
 ## Hotkeys
 
-- `q`: salir
+- `q`: quit
 - `d`: toggle debug metrics
 - `l`: toggle landmarks
-- `r`: reset del contador de distracciones
+- `r`: reset the distraction counter
 
-## Variables utiles
+## Useful Environment Variables
 
-Parte desde `.env.example` y ajusta solo lo necesario:
+Start from `.env.example` and adjust only what you need:
 
-- `CAMERA_INDEX`: indice de la webcam
-- `FRAME_WIDTH` y `FRAME_HEIGHT`: resolucion visual del preview
-- `ANALYSIS_FRAME_WIDTH`: ancho del frame usado para analisis
-- `MIRROR_PREVIEW`: preview tipo espejo
-- `FACE_LANDMARKER_MODEL_PATH`: ruta al modelo `.task`
-- `NO_FACE_THRESHOLD_SECONDS`: tiempo para marcar `no_face`
-- `LOOKING_AWAY_THRESHOLD_SECONDS`: tiempo para marcar `looking_away`
-- `LOOKING_DOWN_THRESHOLD_SECONDS`: tiempo para marcar `looking_down`
-- `RECOVERY_THRESHOLD_SECONDS`: estabilidad minima para volver a `focused`
-- `LOOKING_AWAY_RATIO_THRESHOLD`: sensibilidad horizontal
-- `LOOKING_DOWN_RATIO_THRESHOLD`: sensibilidad vertical
-- `EYES_DOWN_RATIO_THRESHOLD`: sensibilidad para mirada hacia abajo con iris
-- `MIN_DETECTION_CONFIDENCE`: confianza minima de deteccion facial
-- `MIN_FACE_PRESENCE_CONFIDENCE`: confianza minima de presencia facial
-- `MIN_TRACKING_CONFIDENCE`: confianza minima de tracking
-- `METRIC_SMOOTHING`: suavizado simple de metricas por frame
-- `AUDIO_VOLUME`: volumen global entre `0.0` y `1.0`
-- `SHOW_LANDMARKS`: dibuja el mesh facial visible sobre la cara
-- `SHOW_DEBUG_METRICS`: muestra metricas utiles para calibracion
+- `CAMERA_INDEX`: webcam index
+- `FRAME_WIDTH` and `FRAME_HEIGHT`: visual preview resolution
+- `ANALYSIS_FRAME_WIDTH`: frame width used for analysis
+- `MIRROR_PREVIEW`: mirror-style webcam preview
+- `FACE_LANDMARKER_MODEL_PATH`: path to the `.task` model
+- `NO_FACE_THRESHOLD_SECONDS`: time required to trigger `no_face`
+- `LOOKING_AWAY_THRESHOLD_SECONDS`: time required to trigger `looking_away`
+- `LOOKING_DOWN_THRESHOLD_SECONDS`: time required to trigger `looking_down`
+- `RECOVERY_THRESHOLD_SECONDS`: minimum stability time required to return to `focused`
+- `LOOKING_AWAY_RATIO_THRESHOLD`: horizontal sensitivity
+- `LOOKING_DOWN_RATIO_THRESHOLD`: vertical sensitivity
+- `EYES_DOWN_RATIO_THRESHOLD`: iris-based downward gaze sensitivity
+- `MIN_DETECTION_CONFIDENCE`: minimum face detection confidence
+- `MIN_FACE_PRESENCE_CONFIDENCE`: minimum face presence confidence
+- `MIN_TRACKING_CONFIDENCE`: minimum tracking confidence
+- `METRIC_SMOOTHING`: simple per-frame metric smoothing
+- `AUDIO_VOLUME`: global audio volume between `0.0` and `1.0`
+- `SHOW_LANDMARKS`: draws the visible face mesh over the user’s face
+- `SHOW_DEBUG_METRICS`: shows useful calibration metrics
 
-Los audios se leen desde `assets/sounds/`. Puedes dejar solo `SOUND_1_PATH` configurado si quieres una demo simple con un único MP3.
+Audio files are loaded from `assets/sounds/`. You can configure only `SOUND_1_PATH` if you want a simple demo with a single MP3 file.
