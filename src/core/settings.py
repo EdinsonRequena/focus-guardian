@@ -27,6 +27,7 @@ class Settings:
     looking_down_threshold_seconds: float
     recovery_threshold_seconds: float
     audio_cooldown_seconds: float
+    audio_volume: float
     looking_away_ratio_threshold: float
     looking_down_ratio_threshold: float
     eyes_down_ratio_threshold: float
@@ -45,6 +46,11 @@ def _get_bool(name: str, default: bool) -> bool:
         return default
 
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _get_clamped_float(name: str, default: float, minimum: float, maximum: float) -> float:
+    value = float(os.getenv(name, str(default)))
+    return max(minimum, min(value, maximum))
 
 
 def load_settings() -> Settings:
@@ -67,7 +73,7 @@ def load_settings() -> Settings:
         window_title=os.getenv("WINDOW_TITLE", "Focus Guardian"),
         frame_width=int(os.getenv("FRAME_WIDTH", "1280")),
         frame_height=int(os.getenv("FRAME_HEIGHT", "720")),
-        analysis_frame_width=int(os.getenv("ANALYSIS_FRAME_WIDTH", "640")),
+        analysis_frame_width=int(os.getenv("ANALYSIS_FRAME_WIDTH", "800")),
         mirror_preview=_get_bool("MIRROR_PREVIEW", True),
         face_landmarker_model_path=os.getenv(
             "FACE_LANDMARKER_MODEL_PATH", "assets/models/face_landmarker.task"
@@ -76,24 +82,25 @@ def load_settings() -> Settings:
             os.getenv("NO_FACE_THRESHOLD_SECONDS", "0.8")
         ),
         looking_away_threshold_seconds=float(
-            os.getenv("LOOKING_AWAY_THRESHOLD_SECONDS", "1.0")
+            os.getenv("LOOKING_AWAY_THRESHOLD_SECONDS", "1.2")
         ),
         looking_down_threshold_seconds=float(
-            os.getenv("LOOKING_DOWN_THRESHOLD_SECONDS", "1.0")
+            os.getenv("LOOKING_DOWN_THRESHOLD_SECONDS", "0.35")
         ),
         recovery_threshold_seconds=float(
-            os.getenv("RECOVERY_THRESHOLD_SECONDS", "0.45")
+            os.getenv("RECOVERY_THRESHOLD_SECONDS", "0.35")
         ),
         audio_cooldown_seconds=float(
             os.getenv("AUDIO_COOLDOWN_SECONDS", "3.0")),
+        audio_volume=_get_clamped_float("AUDIO_VOLUME", 0.8, 0.0, 1.0),
         looking_away_ratio_threshold=float(
-            os.getenv("LOOKING_AWAY_RATIO_THRESHOLD", "0.12")
+            os.getenv("LOOKING_AWAY_RATIO_THRESHOLD", "0.24")
         ),
         looking_down_ratio_threshold=float(
-            os.getenv("LOOKING_DOWN_RATIO_THRESHOLD", "0.42")
+            os.getenv("LOOKING_DOWN_RATIO_THRESHOLD", "0.26")
         ),
         eyes_down_ratio_threshold=float(
-            os.getenv("EYES_DOWN_RATIO_THRESHOLD", "0.68")
+            os.getenv("EYES_DOWN_RATIO_THRESHOLD", "0.06")
         ),
         metric_smoothing=float(os.getenv("METRIC_SMOOTHING", "0.45")),
         min_detection_confidence=float(
@@ -106,6 +113,6 @@ def load_settings() -> Settings:
             os.getenv("MIN_TRACKING_CONFIDENCE", "0.5")
         ),
         show_debug_metrics=_get_bool("SHOW_DEBUG_METRICS", False),
-        show_landmarks=_get_bool("SHOW_LANDMARKS", False),
+        show_landmarks=_get_bool("SHOW_LANDMARKS", True),
         sound_paths=sound_paths,
     )

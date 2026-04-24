@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 import logging
-from pathlib import Path
 import time
 
 import cv2
@@ -74,6 +73,8 @@ class FocusDetector:
         self._last_timestamp_ms = 0
         self._eyes_down_baseline = 0.0
         self._baseline_ready = False
+        self._last_eyes_measure = 0.0
+        self._last_eyes_delta = 0.0
 
         self.face_cascade = cv2.CascadeClassifier(
             cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -206,8 +207,14 @@ class FocusDetector:
                 "eyes_down_ratio": f"{eyes_down_ratio:.3f}",
                 "down_ratio": f"{down_ratio:.3f}",
                 "analysis": f"{analysis_width}x{analysis_height}",
-                "baseline_ready": str(self._baseline_ready),
-                "eyes_baseline": f"{self._eyes_down_baseline:.3f}",
+                "baseline_ready": "yes" if self._baseline_ready else "no",
+                "eyes_measure": f"{self._last_eyes_measure:.3f}",
+                "eyes_baseline": (
+                    f"{self._eyes_down_baseline:.3f}" if self._baseline_ready else "n/a"
+                ),
+                "eyes_delta": (
+                    f"{self._last_eyes_delta:.3f}" if self._baseline_ready else "n/a"
+                ),
             },
         )
 
@@ -255,6 +262,10 @@ class FocusDetector:
                     "eyes_down_ratio": "0.000",
                     "down_ratio": "0.000",
                     "analysis": f"{gray.shape[1]}x{gray.shape[0]}",
+                    "baseline_ready": "no",
+                    "eyes_measure": "n/a",
+                    "eyes_baseline": "n/a",
+                    "eyes_delta": "n/a",
                 },
             )
 
@@ -275,6 +286,10 @@ class FocusDetector:
                 "eyes_down_ratio": "0.000",
                 "down_ratio": "0.000",
                 "analysis": f"{gray.shape[1]}x{gray.shape[0]}",
+                "baseline_ready": "no",
+                "eyes_measure": "n/a",
+                "eyes_baseline": "n/a",
+                "eyes_delta": "n/a",
             },
         )
 
@@ -364,6 +379,12 @@ class FocusDetector:
                 "eyes_down_ratio": "0.000",
                 "down_ratio": "0.000",
                 "analysis": "n/a",
+                "baseline_ready": "no" if not self._baseline_ready else "yes",
+                "eyes_measure": "n/a",
+                "eyes_baseline": (
+                    f"{self._eyes_down_baseline:.3f}" if self._baseline_ready else "n/a"
+                ),
+                "eyes_delta": "n/a",
             },
         )
 
@@ -479,21 +500,33 @@ class FocusDetector:
             value for value in (right_eye_measure, left_eye_measure) if value is not None
         ]
         if not valid_measures:
+            self._last_eyes_measure = 0.0
+            self._last_eyes_delta = 0.0
             return 0.0
 
         current_measure = sum(valid_measures) / len(valid_measures)
+        self._last_eyes_measure = current_measure
+        baseline_delta = 0.0 if not self._baseline_ready else (
+            current_measure - self._eyes_down_baseline
+        )
 
-        if turn_ratio < 0.12 and head_down_ratio < 0.24:
+        stable_face = turn_ratio < 0.12 and head_down_ratio < 0.24
+        small_delta = abs(baseline_delta) < 0.015
+
+        if stable_face:
             if not self._baseline_ready:
                 self._eyes_down_baseline = current_measure
                 self._baseline_ready = True
-            else:
+                baseline_delta = 0.0
+            elif small_delta:
                 self._eyes_down_baseline = (self._eyes_down_baseline * 0.92) + (
                     current_measure * 0.08
                 )
+                baseline_delta = current_measure - self._eyes_down_baseline
 
         baseline = self._eyes_down_baseline if self._baseline_ready else current_measure
         delta = current_measure - baseline
+        self._last_eyes_delta = delta
 
         return max(0.0, min((delta - 0.005) / 0.05, 1.5))
 

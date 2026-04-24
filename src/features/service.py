@@ -71,6 +71,10 @@ class FocusGuardianService:
             debug_values=debug_values,
         )
 
+    def reset_distraction_count(self) -> None:
+        """Reset the session distraction counter for a fresh demo pass."""
+        self.state.distraction_count = 0
+
     def _update_candidate(
         self, raw_reason: DistractionReason | None, now: float
     ) -> None:

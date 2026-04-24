@@ -124,6 +124,10 @@ class FocusUI:
             f"turn_ratio: {detection.debug_values.get('turn_ratio', '0.000')}",
             f"head_down: {detection.debug_values.get('head_down_ratio', '0.000')}",
             f"eyes_down: {detection.debug_values.get('eyes_down_ratio', '0.000')}",
+            f"baseline: {detection.debug_values.get('baseline_ready', 'no')}",
+            f"eyes_measure: {detection.debug_values.get('eyes_measure', 'n/a')}",
+            f"eyes_base: {detection.debug_values.get('eyes_baseline', 'n/a')}",
+            f"eyes_delta: {detection.debug_values.get('eyes_delta', 'n/a')}",
             f"down_ratio: {detection.debug_values.get('down_ratio', '0.00')}",
             f"analysis: {detection.debug_values.get('analysis', 'n/a')}",
         ]

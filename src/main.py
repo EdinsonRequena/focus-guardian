@@ -37,7 +37,10 @@ def main() -> None:
     settings = load_settings()
     detector = FocusDetector(settings)
     service = FocusGuardianService(settings)
-    audio_player = AudioPlayer(sound_paths=settings.sound_paths)
+    audio_player = AudioPlayer(
+        sound_paths=settings.sound_paths,
+        volume=settings.audio_volume,
+    )
     ui = FocusUI(settings)
     camera = create_camera(
         camera_index=settings.camera_index,
@@ -74,8 +77,24 @@ def main() -> None:
             rendered_frame = ui.render(frame, session, detection)
             cv2.imshow(settings.window_title, rendered_frame)
 
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
                 break
+            if key == ord("d"):
+                settings.show_debug_metrics = not settings.show_debug_metrics
+                LOGGER.info(
+                    "Debug metrics: %s",
+                    "on" if settings.show_debug_metrics else "off",
+                )
+            if key == ord("l"):
+                settings.show_landmarks = not settings.show_landmarks
+                LOGGER.info(
+                    "Landmarks: %s",
+                    "on" if settings.show_landmarks else "off",
+                )
+            if key == ord("r"):
+                service.reset_distraction_count()
+                LOGGER.info("Distraction counter reset.")
     finally:
         camera.release()
         detector.close()
