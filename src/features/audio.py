@@ -30,13 +30,24 @@ class AudioPlayer:
             for sound_path in self.sound_paths
             if sound_path
         ]
-        existing_paths = [resolved_path for _, resolved_path in configured_paths if resolved_path.exists()]
-        missing_paths = [configured_path for configured_path, resolved_path in configured_paths if not resolved_path.exists()]
+        existing_paths = [
+            resolved_path
+            for _, resolved_path in configured_paths
+            if resolved_path.exists()
+        ]
+        missing_paths = [
+            configured_path
+            for configured_path, resolved_path in configured_paths
+            if not resolved_path.exists()
+        ]
 
         LOGGER.info("Audio configured paths: %s", list(self.sound_paths) or ["none"])
         if missing_paths:
             LOGGER.info("Audio paths ignored because they do not exist: %s", missing_paths)
-        LOGGER.info("Audio existing paths: %s", [str(path) for path in existing_paths] or ["none"])
+        LOGGER.info(
+            "Audio existing paths: %s",
+            [str(path) for path in existing_paths] or ["none"],
+        )
 
         if not existing_paths:
             self.silent_mode = True

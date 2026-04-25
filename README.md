@@ -72,3 +72,18 @@ Start from `.env.example` and adjust only what you need:
 - `SHOW_DEBUG_METRICS`: shows useful calibration metrics
 
 Audio files are loaded from `assets/sounds/`. You can configure only `SOUND_1_PATH` if you want a simple demo with a single MP3 file.
+
+## Code Quality
+
+```bash
+make lint
+make format
+make check
+```
+
+Direct commands:
+
+```bash
+pipenv run pylint src
+pipenv run autopep8 --in-place --recursive src
+```

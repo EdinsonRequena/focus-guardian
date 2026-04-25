@@ -1,0 +1,58 @@
+[MASTER]
+py-version=3.12
+init-hook='import sys; sys.path.insert(0, "src")'
+ignore=.git,.venv,__pycache__,assets
+ignore-patterns=.*_pb2.py
+extension-pkg-allow-list=cv2,numpy,mediapipe
+persistent=no
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    too-few-public-methods,
+    duplicate-code,
+    fixme,
+    broad-exception-caught,
+    import-outside-toplevel
+
+[FORMAT]
+max-line-length=100
+
+[BASIC]
+good-names=i,j,k,x,y,x1,y1,x2,y2,dx,dy,ok,mp,ui,cv
+argument-naming-style=snake_case
+attr-naming-style=snake_case
+class-naming-style=PascalCase
+const-naming-style=UPPER_CASE
+function-naming-style=snake_case
+method-naming-style=snake_case
+module-naming-style=snake_case
+variable-naming-style=snake_case
+
+[DESIGN]
+max-args=8
+max-attributes=24
+max-bool-expr=6
+max-branches=16
+max-locals=24
+max-public-methods=20
+max-returns=8
+max-statements=70
+min-public-methods=0
+
+[IMPORTS]
+known-third-party=cv2,mediapipe,numpy,pygame,dotenv
+
+[SIMILARITIES]
+min-similarity-lines=8
+ignore-comments=yes
+ignore-docstrings=yes
+ignore-imports=yes
+
+[TYPECHECK]
+generated-members=cv2.*,mediapipe.*,numpy.*,pygame.*
+ignored-modules=cv2,mediapipe
+
+[VARIABLES]
+allow-global-unused-variables=yes
+dummy-variables-rgx=^(_|unused_|ignored_)
