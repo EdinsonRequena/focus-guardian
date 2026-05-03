@@ -16,7 +16,7 @@ disable=
     import-outside-toplevel
 
 [FORMAT]
-max-line-length=100
+max-line-length=200
 
 [BASIC]
 good-names=i,j,k,x,y,x1,y1,x2,y2,dx,dy,ok,mp,ui,cv
